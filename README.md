@@ -1,27 +1,4 @@
-# Bus Booking Application
 
-This repository contains the source code for the Bus Booking Application built with Spring Boot. It includes the necessary steps to build, deploy, and test the application, as well as CI/CD pipelines using both GitHub Actions and Jenkins.
-
-## Prerequisites
-
-- Java 11 or above
-- Maven 3.6 or above
-- GitHub repository for CI/CD (optional)
-- Jenkins for Jenkins pipeline (optional)
-
-  # Bus Booking App
-=============================================================================================================================================================================
-=============================================================================================================================================================================
-
-## Project Setup
-
-# Bus Booking App
-
-## Bash Script for Setup
-
-Use the following script to install Java 11, Maven, and set up `JAVA_HOME`:
-
-```bash
 ==========================================================================================================================================================================
 #!/bin/bash
 
@@ -29,11 +6,11 @@ set -e
 
 echo "Starting installation of Java 11 and Maven..."
 
-# Install Java 11
+# Install Java 17
 if ! java -version &>/dev/null; then
-    echo "Installing Java 11..."
+    echo "Installing Java 17..."
     sudo apt update
-    sudo apt install -y openjdk-11-jdk
+    sudo apt install -y openjdk-17-jdk
 else
     echo "Java is already installed:"
     java -version
@@ -63,29 +40,6 @@ fi
 
 echo "Setup completed successfully."
 ============================================================================================================================================================================
-### Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/bus-booking-app.git
-cd bus-booking-app
-Setting up Maven and Java
-Ensure that Java 11 (or above) and Maven are installed on your machine. You can verify the installation by running:
-
-bash
-Copy code
-java -version
-mvn -version
-If Java or Maven are not installed, follow the installation instructions for your operating system:
-
-Install Java
-Install Maven
-Build and Run the Application Locally
-Use the build_deploy.sh script to build, run, and stop the application.
-
-build_deploy.sh
-bash
-Copy code
-================================================================================================================================================
 #!/bin/bash
 
 # Step 1: Set up Maven environment
@@ -172,7 +126,7 @@ jobs:
         - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
       # Cache Maven dependencies
