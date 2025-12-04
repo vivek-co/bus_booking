@@ -19,8 +19,8 @@ pipeline {
                 sh '''
                 echo "=== Checking out Correct Repo & Branch ==="
 
-                sudo rm -rf /opt/bus_booking
-                sudo mkdir -p /opt/bus_booking
+                 rm -rf /opt/bus_booking
+                 mkdir -p /opt/bus_booking
                 cd /opt/bus_booking
 
                 git clone -b feature-1 https://github.com/vivek-co/bus_booking.git bus_booking
