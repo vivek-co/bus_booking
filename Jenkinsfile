@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'slave2' }
+    agent { label 'vivek' }
 
     environment {
         MAVEN_HOME = "/usr/local/maven"
