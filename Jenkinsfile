@@ -5,7 +5,9 @@ pipeline {
         MAVEN_HOME = "/usr/local/maven"
         PATH = "${MAVEN_HOME}/bin:${PATH}"
     }
-
+tools {
+    maven 'Maven3'
+}
     stages {
 
         stage('Checkout') {
