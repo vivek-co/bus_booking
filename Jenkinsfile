@@ -1,5 +1,5 @@
 pipeline {
-   agent { label 'java' }
+   agent { label 'vivek' }
      // agent any
     tools {
         jdk 'JDK17'
