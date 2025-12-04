@@ -1,120 +1,96 @@
 pipeline {
-    agent any
+    agent { label 'vivek' }
 
     environment {
-        JAVA_HOME = tool name: 'JDK17', type: 'jdk'
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"
-
-        APP_DIR = "/opt/bus_booking/bus_booking"
-        TOMCAT_DIR = "/opt/tomcat10"
-        TOMCAT_VERSION = "10.1.30"
-        WAR_NAME = "bus-booking-app-1.0-SNAPSHOT.war"
-        APP_CONTEXT = "bus-booking-app"
+        MAVEN_HOME = "/usr/local/maven"
+        PATH = "${MAVEN_HOME}/bin:${PATH}"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                sh '''
-                echo "=== Checking out Correct Repo & Branch ==="
+                checkout scm
+            }
+        }
 
-                 rm -rf /opt/bus_booking
-                 mkdir -p /opt/bus_booking
-                cd /opt/bus_booking
-
-                git clone -b feature-1 https://github.com/vivek-co/bus_booking.git bus_booking
-
-                echo "=== Code Pulled ==="
+        stage('Build') {
+            steps {
+                sh ''' 
+                    echo "Building project using Maven..."
+                    mvn clean install
                 '''
             }
         }
 
-        stage('Verify POM Location') {
+        stage('Run Application') {
             steps {
                 sh '''
-                echo "=== Listing files in APP_DIR ==="
-                ls -l ${APP_DIR}
+                    echo "Starting Spring Boot application with nohup..."
+                    nohup mvn spring-boot:run > app.log 2>&1 &
+                    echo $! > app.pid
+                    sleep 15   # allow app startup
+                '''
+            }
+        }
 
-                if [ ! -f "${APP_DIR}/pom.xml" ]; then
-                    echo "❌ ERROR: pom.xml not found in ${APP_DIR}"
+        stage('Validate Application') {
+            steps {
+                sh '''
+                    echo "Validating application on port 8080..."
+
+                    # Try for ~60 seconds
+                    for i in {1..20}; do
+                        STATUS=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
+
+                        if [ "$STATUS" -eq 200 ]; then
+                            echo "Application is UP! HTTP 200"
+                            exit 0
+                        fi
+
+                        echo "Attempt $i/20: App not ready (HTTP $STATUS)... retrying"
+                        sleep 3
+                    done
+
+                    echo "ERROR: Application FAILED to start!"
+                    echo "------ App Log ------"
+                    tail -n 200 app.log || true
                     exit 1
-                fi
-                
-                echo "✅ POM found"
                 '''
             }
         }
 
-        stage('Build WAR') {
+        stage('Wait for 2 minutes') {
             steps {
-                sh '''
-                echo "=== Running Maven Build ==="
-                cd ${APP_DIR}
-                mvn clean package -DskipTests
-                '''
+                echo "App is running — waiting for 2 minutes..."
+                sleep(time: 2, unit: 'MINUTES')
             }
         }
 
-        stage('Install Tomcat (if missing)') {
+        stage('Stop Application') {
             steps {
                 sh '''
-                if [ ! -d "${TOMCAT_DIR}" ]; then
-                    echo "=== Installing Tomcat 10 ==="
-                    cd /opt
-                    sudo wget https://archive.apache.org/dist/tomcat/tomcat-10/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz
-                    sudo tar -xzf apache-tomcat-${TOMCAT_VERSION}.tar.gz
-                    sudo mv apache-tomcat-${TOMCAT_VERSION} tomcat10
-                    sudo chmod +x /opt/tomcat10/bin/*.sh
-                else
-                    echo "Tomcat is already installed"
-                fi
+                    if [ -f app.pid ]; then
+                        PID=$(cat app.pid)
+                        echo "Stopping application (PID: $PID)..."
+                        kill $PID || true
+                        sleep 5
+                        echo "Stopped"
+                    else
+                        echo "app.pid not found, nothing to stop"
+                    fi
                 '''
             }
         }
+    }
 
-        stage('Deploy WAR to Tomcat') {
-            steps {
-                sh '''
-                echo "=== Deploying WAR ==="
-
-                if [ ! -d "${TOMCAT_DIR}/webapps" ]; then
-                    echo "❌ ERROR: Tomcat webapps folder NOT found!"
-                    exit 1
-                fi
-
-                echo "Stopping Tomcat..."
-                sudo ${TOMCAT_DIR}/bin/shutdown.sh || true
-                sleep 5
-
-                echo "Removing old deployment..."
-                sudo rm -rf ${TOMCAT_DIR}/webapps/${APP_CONTEXT}*
-                
-                echo "Copying new WAR..."
-                sudo cp ${APP_DIR}/target/${WAR_NAME} ${TOMCAT_DIR}/webapps/${APP_CONTEXT}.war
-
-                echo "Starting Tomcat..."
-                sudo ${TOMCAT_DIR}/bin/startup.sh
-                '''
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                sh '''
-                echo "=== Waiting for Tomcat to start ==="
-                sleep 10
-
-                STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/${APP_CONTEXT}/)
-
-                if [ "$STATUS" = "200" ]; then
-                    echo "✅ Deployment Successful!"
-                else
-                    echo "❌ Deployment Failed! HTTP Status = $STATUS"
-                    exit 1
-                fi
-                '''
-            }
+    post {
+        always {
+            echo "Cleaning up workspace..."
+            sh '''
+                rm -f app.pid || true
+                rm -f app.log || true
+            '''
         }
     }
 }
