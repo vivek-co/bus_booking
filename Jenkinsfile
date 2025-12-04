@@ -47,7 +47,7 @@ pipeline {
                     git fetch --all
                     git reset --hard origin/main
                 else
-                    git clone https://github.com/vikas0105/bus_booking.git $APP_DIR
+                    git clone https://github.com/vivek-co/bus_booking.git $APP_DIR
                 fi
                 '''
             }
