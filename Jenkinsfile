@@ -31,26 +31,30 @@ pipeline {
             }
         }
 
-        stage('Validate Application') {
-            steps {
-                sh '''
-                    echo "Waiting for app on 8080..."
+       stage('Validate Application') {
+    steps {
+        sh '''
+            echo "Waiting for app on 8080..."
 
-                    for i in {1..20}; do
-                        if curl -s http://localhost:8080 (http://localhost:8080/) >/dev/null; then
-                            echo "App is running!"
-                            exit 0
-                        fi
-                        echo "Not responding yet... retry $i"
-                        sleep 3
-                    done
+            i=1
+            while [ $i -le 20 ]; do
+                STATUS=$(curl --write-out "%{http_code}" --silent --output /dev/null http://localhost:8080)
 
-                    echo "App FAILED to start!"
-                    tail -n 200 app.log || true
-                    exit 1
-                '''
-            }
-        }
+                if [ "$STATUS" -eq 200 ]; then
+                    echo "Application is UP! HTTP 200"
+                    exit 0
+                fi
+
+                echo "Attempt $i/20: App not ready (HTTP $STATUS)... retrying"
+                i=$((i + 1))
+                sleep 3
+            done
+
+            echo "ERROR: Application FAILED to start!"
+            exit 1
+        '''
+    }
+}
 
         stage('Wait for 2 minutes') {
             steps {
