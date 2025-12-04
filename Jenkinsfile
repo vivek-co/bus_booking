@@ -1,6 +1,11 @@
 pipeline {
     agent { label 'vivek' }
 
+        tools {
+        maven 'maven'
+        jdk 'JDK17'
+    }
+
     stages {
 
         stage('Checkout') {
